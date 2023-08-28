@@ -1,0 +1,10 @@
+StudentID: Sttt
+Student Name: ThuongAA
+Birthday: 2000-10-19
+Gender: true
+Age: 0
+Mark HTML: 10.0
+Mark CSS: 10.0
+Mark JavaScript: 9.0
+Rank: 0.0
+
