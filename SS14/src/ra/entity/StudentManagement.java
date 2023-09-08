@@ -34,6 +34,7 @@ public class StudentManagement {
             System.out.println(ColorText.GREEN_BRIGHT + "Thêm thành công" + ColorText.RESET);
         }
     }
+
     //
     public void evaluateStudents() {
         for (Student student : studentList) {
@@ -42,7 +43,7 @@ public class StudentManagement {
     }
 
     public void displayAllStudents() {
-        if (studentList.isEmpty()){
+        if (studentList.isEmpty()) {
             System.err.println("Chưa có sinh viên nào ");
             return;
         }
@@ -62,8 +63,7 @@ public class StudentManagement {
         displayAllStudents();
     }
 
-    public void statisticsStudentByRank()
-    {
+    public void statisticsStudentByRank() {
         Map<String, Integer> rankCount = new HashMap<>();
         rankCount.put("Yếu", 0);
         rankCount.put("Trung bình", 0);
@@ -83,57 +83,45 @@ public class StudentManagement {
     }
 
     //
-    public void updateStudentById(Scanner scanner)
-    {
+    public void updateStudentById(Scanner scanner) {
         try {
             System.out.println("** Hãy nhập hoặc mã sinh viên để thực hiện cập nhật thông tin");
             String input = scanner.nextLine();
             // logic
-            for (Student item : studentList) {
-                if (item.getStudentID().equals(input)) {
-                    System.out.println(ColorText.GREEN_BRIGHT + "Đã tìm thấy sinh viên : " + item.getStudentName() + ColorText.RESET);
-                    // update Information
-                    System.out.println("***** Tiến hành cập nhật *****");
-                    item.inputData(scanner,studentList);
-                    System.out.println(ColorText.GREEN_BRIGHT +"Đã sửa đổi xong"+ ColorText.RESET);
-                } else
-                    System.err.println(" Không tìm thấy sinh viên, vui lòng nhập chính xác id SV !");
+            Student foundStudent = studentList.stream()
+                    .filter(student -> student.getStudentID().equals(input))
+                    .findFirst().get();
+            if (foundStudent == null) {
+                System.err.println(" Không tìm thấy sinh viên, vui lòng nhập chính xác id SV !");
             }
+            System.out.println(ColorText.GREEN_BRIGHT + "Đã tìm thấy sinh viên : " + foundStudent.getStudentName() + ColorText.RESET);
+            System.out.println("***** Tiến hành cập nhật *****");
+            foundStudent.inputData(scanner, studentList);
+            System.out.println(ColorText.GREEN_BRIGHT + "Đã sửa đổi xong" + ColorText.RESET);
         } catch (NullPointerException e) {
             System.err.println("Danh mục đang chọn bị NUll");
         }
     }
-
     //
 
     public void searchStudentByName(Scanner scanner) {
         System.out.println("Nhập tên tên sinh viên cần tìm ");
         String input = scanner.nextLine();
-        int count = 0;
-        for (Student student : studentList) {
-            if (student.getStudentName().equalsIgnoreCase(input)) {
-                student.displayData();
-                count++;
-            }
-        }
-        System.out.println(" -------- Tìm thấy " + count + " SV --------" );
-        if (count == 0) {
+        List<Student> filteredListStudent = studentList.stream().filter(student -> student.getStudentName().equalsIgnoreCase(input)).toList();
+        filteredListStudent.forEach(Student::displayData);
+        System.out.println(" -------- Tìm thấy " + filteredListStudent.size() + " SV --------");
+        if (filteredListStudent.size() == 0) {
             System.err.println("Không tìm thấy sinh viên có tên " + input);
         }
     }
 
-    public void calAgeStudents()
-    {
-        for (Student std: studentList) {
-            std.calAge();
-        }
-        System.out.println(ColorText.GREEN_BRIGHT +"Đã tính tuổi xong"+ ColorText.RESET);
+    public void calAgeStudents() {
+        studentList.forEach(Student::calAge);
+        System.out.println(ColorText.GREEN_BRIGHT + "Đã tính tuổi xong" + ColorText.RESET);
     }
-    public void calAvgMarkToSetRank()
-    {
-        for (Student std: studentList) {
-            std.calAvgMark_Rank();
-        }
-        System.out.println(ColorText.GREEN_BRIGHT +"Đã thực hiện xong"+ ColorText.RESET);
+
+    public void calAvgMarkToSetRank() {
+        studentList.forEach(Student::calAvgMark_Rank);
+        System.out.println(ColorText.GREEN_BRIGHT + "Đã thực hiện xong" + ColorText.RESET);
     }
 }
