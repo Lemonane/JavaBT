@@ -95,7 +95,22 @@ create table PhieuXuat
     MaKH    varchar(4) not null,
     NgayBan datetime   not null,
     GhiChu  text       null
+
 );
+-- Tạo trigger check ngày bán
+DELIMITER //
+CREATE TRIGGER check_date_before_insert
+    BEFORE INSERT ON PhieuXuat
+    FOR EACH ROW
+BEGIN
+    IF NEW.NgayBan <= CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Ngay_Ban không được ở quá khứ';
+    END IF;
+END;
+//
+DELIMITER ;
+
 
 -- CT Phiếu xuất
 create table CTPhieuXuat
