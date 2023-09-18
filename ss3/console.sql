@@ -1,4 +1,4 @@
-create schema csdl_QLBH;
+create schema csdl_QLBH CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci;
 
 use csdl_QLBH;
 
@@ -100,7 +100,8 @@ create table PhieuXuat
 -- Tạo trigger check ngày bán
 DELIMITER //
 CREATE TRIGGER check_date_before_insert
-    BEFORE INSERT ON PhieuXuat
+    BEFORE INSERT
+    ON PhieuXuat
     FOR EACH ROW
 BEGIN
     IF NEW.NgayBan <= CURDATE() THEN
@@ -275,8 +276,8 @@ WHERE Donvitinh = 'Chai';
 số phiếu nhập, mã sản phẩm, tên sản phẩm, loại sản phẩm, đơn vị tính, số lượng, giá
 nhập, thành tiền.
  */
-SELECT SoPN,
-       MaSP,
+SELECT CTPhieuNhap.SoPN,
+       CTPhieuNhap.MaSP,
        SanPham.TenSP,
        LoaiSP.TenloaiSP,
        SanPham.Donvitinh,
@@ -296,7 +297,7 @@ thông tin: mã nhà cung cấp, họ tên nhà cung cấp, địa chỉ, số �
 email, số phiếu nhập, ngày nhập. Sắp xếp thứ tự theo ngày nhập hàng.
  */
 
-SELECT MaNCC, TenNCC, DiaChi, DienThoai, Email, PhieuNhap.SoPN, PhieuNhap.Ngaynhap
+SELECT PhieuNhap.MaNCC, TenNCC, DiaChi, DienThoai, Email, PhieuNhap.SoPN, PhieuNhap.Ngaynhap
 FROM NhaCungCap
          JOIN PhieuNhap ON NhaCungCap.MaNCC = PhieuNhap.MaNCC
 WHERE MONTH(PhieuNhap.Ngaynhap) = MONTH(CURDATE())
@@ -308,10 +309,10 @@ ORDER BY PhieuNhap.Ngaynhap;
 số phiếu xuất, nhân viên bán hàng, ngày bán, mã sản phẩm, tên sản phẩm, đơn vị tính, số lượng, giá bán, doanh thu.
  */
 
-SELECT SoPX,
+SELECT CTPhieuXuat.SoPX,
        Nhan_vien.HoTen,
        NgayBan,
-       MaSP,
+       CTPhieuXuat.MaSP,
        TenSP,
        Donvitinh,
        Soluong,
@@ -336,10 +337,10 @@ WHERE MONTH(NgaySinh) = MONTH(CURDATE())
  8. Liệt kê các hóa đơn bán hàng từ ngày 15/04/2018 đến 15/05/2018 gồm các thông tin: số phiếu xuất,
  nhân viên bán hàng, ngày bán, mã sản phẩm, tên sản phẩm, đơn vị tính, số lượng, giá bán, doanh thu.
  */
-SELECT SoPX,
+SELECT CTPhieuXuat.SoPX,
        Nhan_vien.HoTen,
        NgayBan,
-       MaSP,
+       CTPhieuXuat.MaSP,
        TenSP,
        Donvitinh,
        Soluong,
@@ -351,7 +352,7 @@ FROM CTPhieuXuat
          JOIN SanPham ON CTPhieuXuat.MaSP = SanPham.MaSP
 WHERE DAY(PhieuXuat.NgayBan) = 15
   AND MONTH(PhieuXuat.NgayBan) BETWEEN 4 AND 5
-  AND YEAR(PhieuXuat.NgayBan) = 2018;
+  AND YEAR(PhieuXuat.NgayBan) = 2023;
 /*
  9. Liệt kê các hóa đơn mua hàng theo từng khách hàng, gồm các thông tin:
  số phiếu xuất, ngày bán, mã khách hàng, tên khách hàng, trị giá.
@@ -377,10 +378,72 @@ WHERE TenSP = 'nước xả vải Comfort';
  11.Tổng kết doanh thu theo từng khách hàng theo tháng, gồm các thông tin:
  tháng, mã khách hàng, tên khách hàng, địa chỉ, tổng tiền.
  */
-SELECT MONTH(NgayBan) AS NgayBan, MaKH, TenKH, DiaChi, (CTPhieuXuat.Soluong * CTPhieuXuat.GiaBan)
+SELECT MONTH(NgayBan)                                  AS NgayBan,
+       PhieuXuat.MaKH,
+       TenKH,
+       DiaChi,
+       SUM((CTPhieuXuat.Soluong * CTPhieuXuat.GiaBan)) as TongTien
 FROM CTPhieuXuat
          JOIN PhieuXuat ON CTPhieuXuat.SoPX = PhieuXuat.SoPX
-         JOIN KhachHang ON PhieuXuat.MaKH = KhachHang.MaKH;
+         JOIN KhachHang ON PhieuXuat.MaKH = KhachHang.MaKH
+GROUP BY MONTH(NgayBan), PhieuXuat.MaKH;
+/*
+12.Thống kê tổng số lượng sản phẩm đã bán theo từng tháng trong năm, gồm thông tin:
+năm, tháng, mã sản phẩm, tên sản phẩm, đơn vị tính, tổng số lượng.
+*/
+select YEAR(NgayBan) as Năm, MONTH(NgayBan) as Tháng, SanPham.MaSP, TenSP, Donvitinh, (Soluong) as SoLuong
+from CTPhieuXuat
+         join SanPham on SanPham.MaSP = CTPhieuXuat.MaSP
+         join PhieuXuat on PhieuXuat.SoPX = CTPhieuXuat.SoPX;
+# group by YEAR(NgayBan), MONTH(NgayBan), SanPham.MaSP, TenSP;
+/*
+13.Thống kê doanh thu bán hàng trong trong 6 tháng đầu năm 2018, thông tin hiển thị gồm: tháng, doanh thu.
+*/
+select MONTH(NgayBan) as Thang, SUM((GiaBan * CTPhieuXuat.Soluong - GiaNhap * CTPhieuNhap.Soluong)) as DoanhThu
+from CTPhieuXuat
+         join PhieuXuat on PhieuXuat.SoPX = CTPhieuXuat.SoPX
+         join SanPham on SanPham.MaSP = CTPhieuXuat.MaSP
+         join CTPhieuNhap on SanPham.MaSP = CTPhieuNhap.MaSP
+group by MONTH(NgayBan);
+/*
+14.Liệt kê các hóa đơn bán hàng của tháng 5 và tháng 6 năm 2018, gồm các thông tin:
+ số phiếu, ngày bán, họ tên nhân viên bán hàng, họ tên khách hàng, tổng trị giá.
+*/
+select CTPhieuXuat.SoPX, NgayBan, HoTen, TenKH, (Soluong * GiaBan) as TongTriGia
+from CTPhieuXuat
+         join PhieuXuat on CTPhieuXuat.SoPX = PhieuXuat.SoPX
+         join Nhan_vien on Nhan_vien.MaNV = PhieuXuat.MaNV
+         join KhachHang on KhachHang.MaKH = PhieuXuat.MaKH
+where YEAR(NgayBan) = 2018
+  and MONTH(NgayBan) between 5 and 6;
+/*
+15.Cuối ngày, nhân viên tổng kết các hóa đơn bán hàng trong ngày, thông tin gồm:
+ số phiếu xuất, mã khách hàng, tên khách hàng, họ tên nhân viên bán hàng, ngày bán, trị giá.
+*/
+select CTPhieuXuat.SoPX, NgayBan, HoTen, TenKH, (Soluong * GiaBan) as TriGia
+from CTPhieuXuat
+         join PhieuXuat on CTPhieuXuat.SoPX = PhieuXuat.SoPX
+         join Nhan_vien on Nhan_vien.MaNV = PhieuXuat.MaNV
+         join KhachHang on KhachHang.MaKH = PhieuXuat.MaKH
+where YEAR(NgayBan) = YEAR(CURDATE())
+  and TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 1 DAY) - INTERVAL 1 SECOND);
+
+/*
+16.Thống kê doanh số bán hàng theo từng nhân viên, gồm thông tin:
+ mã nhân viên, họ tên nhân viên, mã sản phẩm, tên sản phẩm, đơn vị tính, tổng số lượng.
+17.Liệt kê các hóa đơn bán hàng cho khách vãng lai (KH01) trong quý 2/2018,
+thông tin gồm số phiếu xuất, ngày bán, mã sản phẩm, tên sản phẩm, đơn vị
+tính, số lượng, đơn giá, thành tiền.
+18.Liệt kê các sản phẩm chưa bán được trong 6 tháng đầu năm 2018, thông tin gồm:
+ mã sản phẩm, tên sản phẩm, loại sản phẩm, đơn vị tính.
+19.Liệt kê danh sách nhà cung cấp không giao dịch mua bán với cửa hàng trong
+quý 2/2018, gồm thông tin:
+mã nhà cung cấp, tên nhà cung cấp, địa chỉ, số điện thoại.
+20.Cho biết khách hàng có tổng trị giá đơn hàng lớn nhất trong 6 tháng đầu năm 2018.
+21.Cho biết mã khách hàng và số lượng đơn đặt hàng của mỗi khách hàng.
+22.Cho biết mã nhân viên, tên nhân viên, tên khách hàng kể cả những nhân viên không đại diện bán hàng.
+23.Cho biết số lượng nhân viên nam, số lượng nhân viên nữ
+ */
 
 /*
 24.Cho biết mã nhân viên, tên nhân viên, số năm làm việc của những nhân viên
@@ -391,7 +454,8 @@ FROM Nhan_vien
 WHERE FLOOR(DATEDIFF(CURDATE(), NgayVaoLam) / 365) > 30
 ORDER BY SoThamNien DESC;
 /*
-
+25.Hãy cho biết họ tên của những nhân viên đã đến tuổi về hưu (nam:60 tuổi,
+nữ: 55 tuổi)
  */
 SELECT HoTen
 FROM Nhan_vien
@@ -399,13 +463,16 @@ WHERE (GioiTinh = 1 AND YEAR(CURDATE()) - YEAR(NgaySinh) >= 60)
    OR (GioiTinh = 0 AND YEAR(CURDATE()) - YEAR(NgaySinh) >= 55);
 
 /*
-
+26.Hãy cho biết họ tên của nhân viên và năm về hưu của họ.
  */
 SELECT HoTen,
        IF(GioiTinh = 1, YEAR(NgaySinh) + 60, YEAR(NgaySinh) + 55) AS NamVeHuu
 FROM Nhan_vien;
 
 /*
+27.Cho biết tiền thưởng tết dương lịch của từng nhân viên.
+Biết rằng - thâm niên <1 năm thưởng 200.000 - 1 năm <= thâm niên < 3 năm thưởng 400.000 - 3 năm <=
+thâm niên < 5 năm thưởng 600.000 - 5 năm <= thâm niên < 10 năm thưởng 800.000 - thâm niên >= 10 năm thưởng 1.000.000
 
  */
 SELECT HoTen,
@@ -417,3 +484,41 @@ SELECT HoTen,
            ELSE 1000000
            END AS TienThuongTet
 FROM Nhan_vien;
+
+/*
+28.Cho biết những sản phẩm thuộc ngành hàng Hóa mỹ phẩm
+*/
+SELECT MaSP, TenSP
+FROM LoaiSP p
+         join SanPham on p.MaloaiSP = SanPham.MaloaiSP
+WHERE p.TenloaiSP = 'Hóa mỹ phẩm';
+/*
+29.Cho biết những sản phẩm thuộc loại Quần áo.
+*/
+SELECT MaSP, TenSP
+FROM LoaiSP p
+         join SanPham on p.MaloaiSP = SanPham.MaloaiSP
+WHERE p.TenloaiSP = 'Quần áo';
+/*
+30.Cho biết số lượng sản phẩm loại Quần áo.*/
+SELECT TenSP, (CTPhieuNhap.Soluong) as SoLuong
+from CTPhieuNhap
+         join SanPham on SanPham.MaSP = CTPhieuNhap.MaSP
+         join LoaiSP on SanPham.MaloaiSP = LoaiSP.MaloaiSP
+WHERE LoaiSP.TenloaiSP = 'Quần áo';
+/*
+31.Cho biết số lượng loại sản phẩm ngành hàng Hóa mỹ phẩm.
+*/
+SELECT TenSP, (CTPhieuNhap.Soluong) as SoLuong
+from CTPhieuNhap
+         join SanPham on SanPham.MaSP = CTPhieuNhap.MaSP
+         join LoaiSP on SanPham.MaloaiSP = LoaiSP.MaloaiSP
+WHERE LoaiSP.TenloaiSP = 'Hoá mỹ phẩm';
+/*
+32.Cho biết số lượng sản phẩm theo từng loại sản phẩm.
+ */
+SELECT TenSP, (CTPhieuNhap.Soluong) as SoLuong
+from CTPhieuNhap
+         join SanPham on SanPham.MaSP = CTPhieuNhap.MaSP
+         join LoaiSP on SanPham.MaloaiSP = LoaiSP.MaloaiSP
+WHERE LoaiSP.MaloaiSP;
